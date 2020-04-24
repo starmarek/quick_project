@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 try:
     import numpy as np
@@ -80,10 +79,10 @@ def ucz2(W1przed, W2przed, P, T, n, m, e):
     S2 = W2.shape[0]
 
     wspMomentum = 0.7
-    dW1poprzednie = 0
-    dW2poprzednie = 0
-    blad2poprzedni = 0
     wspUcz = 0.1
+    blad2poprzedni = 0
+    dW1 = 0
+    dW2 = 0
     global beta
     plot_data2 = {}
     plot_data1 = {}
@@ -117,10 +116,10 @@ def ucz2(W1przed, W2przed, P, T, n, m, e):
         elif blad2 <= e:
             # pożądany wymiar błędu został osiągnięty
             try:
-                # Zakładamy że 18 poprzednich wartości błędu musi spełniać warunek:
+                # Zakładamy że 40 poprzednich wartości błędu musi spełniać warunek:
                 # wartość_błędu / pożądany_wymiar_błędu <= 10. Jeżeli którakolwiek wartość nie
                 # spełni tego warunku uznajemy to za chwilową poprawę (min. lokalne) i kontynuujemy naukę sieci.
-                if any(list(plot_data2.values())[i - b] / e >= 10 for b in range(2, 20)):
+                if any(list(plot_data2.values())[i - b] / e >= 10 for b in range(2, 42)):
                     pass
                 else:
                     break
@@ -131,23 +130,44 @@ def ucz2(W1przed, W2przed, P, T, n, m, e):
                 pass
 
         # oblicz poprawki wag (momentum)
-        dW1 = wspUcz * X1 * E1.T + wspMomentum * dW1poprzednie
-        dW2 = wspUcz * X2 * E2.T + wspMomentum * dW2poprzednie
-        dW1poprzednie = dW1
-        dW2poprzednie = dW2
+        dW1 = wspUcz * X1 * E1.T + wspMomentum * dW1
+        dW2 = wspUcz * X2 * E2.T + wspMomentum * dW2
 
         # zastosuj poprawkę
         W1 = W1 + dW1
         W2 = W2 + dW2
 
-        if blad2 > 1.04 * blad2poprzedni:
+        # adaptacyjny współczynnik uczenia
+        if blad2 > 1.04 * blad2poprzedni and 0.7 * wspUcz >= 0.15:
             wspUcz = 0.7 * wspUcz
         else:
             wspUcz = 1.05 * wspUcz
         blad2poprzedni = blad2
 
-
     return W1, W2, plot_data1, plot_data2
+
+# def testuj(P, T, ilosc_petli_nauczania, maks_ilosc_krokow_nauczania, blad_do_osiagniecia):
+#     def single_run(P, T, ilosc_petli_nauczania, maks_ilosc_krokow_nauczania, blad_do_osiagniecia, g):
+
+#         W1przed, W2przed = init2(2, 2, 1)
+#         W1po, W2po, plot_data1, plot_data2 = ucz2(W1przed, W2przed, P, T, ilosc_petli_nauczania, maks_ilosc_krokow_nauczania, blad_do_osiagniecia, g)
+#         Y1, Y2a = dzialaj2(W1po, W2po, P[:, [0]])
+#         Y1, Y2b = dzialaj2(W1po, W2po, P[:, [1]])
+#         Y1, Y2c = dzialaj2(W1po, W2po, P[:, [2]])
+#         Y1, Y2d = dzialaj2(W1po, W2po, P[:, [3]])
+#         return [Y2a, Y2b, Y2c, Y2d], plot_data1, plot_data2
+
+#     arr = []
+#     minval = {}
+#     for i in [x / 100.0 for x in range(1, 50, 1)]:
+#         g = i
+#         print(i)
+#         arr.clear()
+#         for j in range(5):
+#             Y, plt1, plt2 = single_run(P, T, ilosc_petli_nauczania, maks_ilosc_krokow_nauczania, blad_do_osiagniecia, g)
+#             arr.append(max(plt1.keys()))
+#         minval[g] = min(arr)
+#     return minval
 
 if __name__ == '__main__':
     # przygotowanie zmiennych
@@ -157,6 +177,7 @@ if __name__ == '__main__':
     ilosc_petli_nauczania = 5000
     maks_ilosc_krokow_nauczania = 3500
     blad_do_osiagniecia = 0.0003
+    # print(testuj(P, T, ilosc_petli_nauczania, maks_ilosc_krokow_nauczania, blad_do_osiagniecia))
 
     # stworzenie, uczenie i przetestowanie sieci
     W1przed, W2przed = init2(2, 2, 1)
